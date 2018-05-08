@@ -27,6 +27,11 @@ int gap_penalty = 0;
 
 
 vector< vector<double> > run_alg(string seq_a, string seq_b){
+  cout << "Entering run_alg." << endl;
+  if(seq_b.length() > seq_a.length()){
+    cout << "Sequences have been swapped becuase seq b is longer than seq a. Consider passing files in opposite order." << endl;
+    seq_a.swap(seq_b);
+  }
   // get the actual lengths of the sequences
   size_t len_a = seq_a.length(); 
   size_t len_b = seq_b.length();
@@ -57,9 +62,7 @@ vector< vector<double> > run_alg(string seq_a, string seq_b){
     for (int j = 1; j <= len_b; j++){
       vector<double> values_to_compare;
       if(i==j){
-        for(i=0; i < 3; i++){
-          values_to_compare.push_back(-1);
-        }
+        values_to_compare = {-1,-1,-1};
       }
       else{
         values_to_compare.push_back(H[i - 1][j - 1] + (seq_a[i - 1] == seq_b[j - 1] ? 1. : -mismatch_score));
@@ -92,16 +95,8 @@ vector< vector<double> > run_alg(string seq_a, string seq_b){
   return H;
 }
 
-void print_matrix(vector< vector<double> > matrix, string file_name){
-  for (int i = 1; i <= matrix.size(); i++){
-    for (int j = 1; j <=  matrix[0].size(); j++){
-      cout << matrix[i][j] << " ";
-    }
-    cout << endl;
-  }
-}
-
 vector<string> read_files(vector<string> files){
+  cout << "Entering read_files." << endl;
     vector<string> return_vector;
     string line;
     for (auto &file: files){
@@ -129,6 +124,10 @@ vector<string> read_files(vector<string> files){
 }
 
 map<string, string> parse_cl(int argc, char **argv){
+  cout << "Entering parse_cli." << endl;
+  if(argc < 3){
+    print_usage(argv);
+  }
   vector<string> args;
   for(int i=1; i < argc; i++){
     args.push_back(argv[i]);
@@ -188,6 +187,7 @@ map<string, string> parse_cl(int argc, char **argv){
 }
 
 void print_usage(char **argv){
+  cout << "Entering print_usage." << endl;
   cerr << "Usage:" << " " << argv[0] << " " << "fasta_file_1" << " " << "fasta_file_2" << " " << "[-o output_file]" << " " << "[-d file_name]" << "[-h]" << endl;
   cerr << endl;
   cerr << "Options:" << endl;
@@ -200,25 +200,18 @@ void print_usage(char **argv){
 }
 
 void tally_diags(vector< vector<double> > matrix, string output_file = ""){
-  if(output_file == ""){
-    auto time = chrono::system_clock::now();
-    auto int_time = chrono::system_clock::to_time_t(time);
-    string string_time = ctime(&int_time);
-    cout << endl;
-    string_time = string_time.substr(0, string_time.find("\n"));
-    string_time.replace(string_time.find("  "),2, " ");
-    replace(string_time.begin(), string_time.end(), ' ', '_');
-    replace(string_time.begin(), string_time.end(), ':', '.');
-    output_file = "sw_align_" + string_time + ".txt";
-  }
+  cout << "Entering tally_diags." << endl;
   ofstream output_file_stream;
   output_file_stream.open(output_file, ofstream::out);
   if(output_file_stream.is_open()){
+    // i goes across the top row of the matrix
     for(int i=0; i < matrix[0].size(); i++){
       double diag_sum = 0;
-      auto j = i;
-      auto k = 0;
-      while(j != matrix[0].size()){
+      // j is the running diagonal index  that starts the "column"
+      int j = i;
+      // k is the running diagonal index that goes from 0 to the end.
+      int k = 0;
+      while(j < matrix[0].size() && k < matrix.size()){
         diag_sum += matrix[k][j];
         j++;
         k++;
@@ -230,8 +223,7 @@ void tally_diags(vector< vector<double> > matrix, string output_file = ""){
 }
 
 void dump_matrix(vector< vector<double> > matrix, string output_file = ""){
-  matrix = {{1,2,4}};
-  matrix.push_back({1,2,100});
+  cout << "Entering dump_matrix." << endl;
   double max(-std::numeric_limits<double>::infinity());
   for(auto &i: matrix){
     for (auto &j: i){
@@ -257,6 +249,7 @@ void dump_matrix(vector< vector<double> > matrix, string output_file = ""){
 }
 
 int main(int argc, char **argv){
+  cout << "Entering main." << endl;
     map<string, string> cl_params = parse_cl(argc, argv);
     vector<string> file_contents = read_files({cl_params["file_1"], cl_params["file_2"]});
     auto matrix = run_alg(file_contents[0], file_contents[1]);
