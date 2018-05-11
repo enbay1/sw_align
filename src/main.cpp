@@ -83,7 +83,7 @@ vector<vector<double>> run_alg(string seq_a, string seq_b)
       // Find the max element and save it to the score matrix
       score_matrix[i][j] = *max_element(values_to_compare.begin(), values_to_compare.end());
       // Figure out which index is the max, therefore which score the max came from, to assist with the traceback... not importatn here except for completeness
-      _int64 traceback_location = find(values_to_compare.begin(), values_to_compare.end(), H[i][j]) - values_to_compare.begin();
+      auto traceback_location = find(values_to_compare.begin(), values_to_compare.end(), score_matrix[i][j]) - values_to_compare.begin();
       switch (traceback_location)
       {
       case 0: // Match or mismatch
@@ -306,6 +306,7 @@ void dump_matrix(vector<vector<double>> matrix, string output_file = "")
 
 int main(int argc, char **argv)
 {
+  chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
   // Parse CLI
   map<string, string> cl_params = parse_cl(argc, argv);
   // Read files from CLI
@@ -316,13 +317,10 @@ int main(int argc, char **argv)
   // This way if they're not specified they're the same name and will sort nicely in the OS.
   if (cl_params["output"] == "" || cl_params["dump"] == "")
   {
-    auto time = chrono::system_clock::now();
-    auto int_time = chrono::system_clock::to_time_t(time);
-    string string_time = ctime(&int_time);
-    string_time = string_time.substr(0, string_time.find("\n"));
-    string_time.replace(string_time.find("  "), 2, " ");
-    replace(string_time.begin(), string_time.end(), ' ', '_');
-    replace(string_time.begin(), string_time.end(), ':', '.');
+    time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());
+    char buf[100] = {0};
+    strftime(buf, sizeof(buf), "%Y.%m.%d_%H.%M.%S", localtime(&t));
+    auto string_time = string(buf);
     // But don't overwrite someones' hard-input name! That's rude.
     if (cl_params["output"] == "")
     {
@@ -347,6 +345,9 @@ int main(int argc, char **argv)
       cout << "Matrix saved to " << cl_params["dump"] << endl;
     }
   }
+  chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
+  auto duration = chrono::duration_cast<chrono::seconds>( t2 - t1 ).count();
+  cout << "SW align completed in " << duration << "s" << endl;
   // Program 100% guarenteed to end up here.
   return 0;
 }
