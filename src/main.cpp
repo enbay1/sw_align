@@ -13,19 +13,26 @@
 using namespace std;
 
 // Forward declarations.
+struct score_matrix
+{
+  vector<vector<double>> matrix;
+  map<char, int> indices;
+};
 vector<vector<double>> run_alg(string seq_a, string seq_b);
 void print_matrix(vector<vector<double>> matrix, string file_name);
 vector<string> read_files(vector<string> files);
 map<string, string> parse_cl(int argc, char **argv);
 void print_usage(char **argv);
 void tally_diags(vector<vector<double>> matrix, string output_file);
+score_matrix generate_matrix();
 
-//Mismatch score should be positive, gap penalty should be positive, as they are SUBTRACTED in the alg.
-int mismatch_score = 1;
-int gap_penalty = 0;
+//Scores should be positive, as they are SUBTRACTED in the alg.
+int open_gap_penalty = 25;
+int extend_gap_penalty = 1;
 
 vector<vector<double>> run_alg(string seq_a, string seq_b)
 {
+
   if (seq_b.length() < seq_a.length())
   {
     cout << "Sequences have been swapped becuase seq a is longer than seq b. Consider passing files in opposite order." << endl;
@@ -36,72 +43,45 @@ vector<vector<double>> run_alg(string seq_a, string seq_b)
   size_t len_b = seq_b.length();
   // initialize matrix for scores, and traceback, I guess.
   vector<vector<double>> score_matrix;
-  vector<vector<int>> lower_traceback, upper_traceback;
+  vector<vector<double>> IC, IR;
   // Make all three matrices the correct size.
   score_matrix.resize(len_a + 1);
-  lower_traceback.resize(len_a + 1);
-  upper_traceback.resize(len_a + 1);
+  IC.resize(len_a + 1);
+  IR.resize(len_a + 1);
   for (auto &i : score_matrix)
   {
     i.resize(len_b + 1);
   }
-  for (auto &i : lower_traceback)
+  for (auto &i : IC)
   {
     i.resize(len_b + 1);
   }
-  for (auto &i : upper_traceback)
+  for (auto &i : IR)
   {
     i.resize(len_b + 1);
-  }
-  for (int i = 0; i <= len_a; i++)
-  {
-    for (int j = 0; j <= len_b; j++)
-    {
-      score_matrix[i][j] = 0.;
-    }
   }
   // Fill maxtrices
-  for (int i = 1; i <= len_a; i++)
+  auto dna_score_matrix = generate_matrix();
+  for (int row = 0; row < len_a; row++)
   {
-    for (int j = 1; j <= len_b; j++)
+    for (int column = 0; column < len_b; column++)
     {
-      vector<double> values_to_compare;
-      // If on the diagonal itll make the compare array [-1,-1,-1,0] such that 0 always wins saying this is the start of a new subsequence.
-      if (i == j)
+      auto char_a = seq_a[row];
+      auto char_b = seq_b[column];
+      auto char_a_index = dna_score_matrix.indices[char_a];
+      auto char_b_index = dna_score_matrix.indices[char_b];
+      int score = dna_score_matrix.matrix[char_a_index][char_b_index];
+      if (row == column)
       {
-        values_to_compare = {-1, -1, -1};
+        score_matrix[row + 1][column + 1] = 0;
+        IR[row + 1][column + 1] = max(score_matrix[row][column + 1] - open_gap_penalty, IR[row][column + 1] - extend_gap_penalty);
+        IC[row + 1][column + 1] = max(score_matrix[row + 1][column] - open_gap_penalty, IC[row + 1][column] - extend_gap_penalty);
       }
-      // If not on the diag do the regular smith waterman calculation.
       else
       {
-        values_to_compare.push_back(score_matrix[i - 1][j - 1] + (seq_a[i - 1] == seq_b[j - 1] ? 1. : -mismatch_score));
-        values_to_compare.push_back(score_matrix[i - 1][j] - gap_penalty);
-        values_to_compare.push_back(score_matrix[i][j - 1] - gap_penalty);
-      }
-      // 0 is always in the running so it's not in a control statement
-      values_to_compare.push_back(0.);
-      // Find the max element and save it to the score matrix
-      score_matrix[i][j] = *max_element(values_to_compare.begin(), values_to_compare.end());
-      // Figure out which index is the max, therefore which score the max came from, to assist with the traceback... not importatn here except for completeness
-      auto traceback_location = find(values_to_compare.begin(), values_to_compare.end(), score_matrix[i][j]) - values_to_compare.begin();
-      switch (traceback_location)
-      {
-      case 0: // Match or mismatch
-        lower_traceback[i][j] = i - 1;
-        upper_traceback[i][j] = j - 1;
-        break;
-      case 1: // Deletion in A
-        lower_traceback[i][j] = i - 1;
-        upper_traceback[i][j] = j;
-        break;
-      case 2: // Deletion in B
-        lower_traceback[i][j] = i;
-        upper_traceback[i][j] = j - 1;
-        break;
-      case 3: // Start of new subseq
-        lower_traceback[i][j] = i;
-        upper_traceback[i][j] = j;
-        break;
+        score_matrix[row + 1][column + 1] = score + max(0., max(score_matrix[row][column], max(IR[row][column], IC[row][column])));
+        IR[row + 1][column + 1] = max(score_matrix[row][column + 1] - open_gap_penalty, IR[row][column + 1] - extend_gap_penalty);
+        IC[row + 1][column + 1] = max(score_matrix[row + 1][column] - open_gap_penalty, IC[row + 1][column] - extend_gap_penalty);
       }
     }
   }
@@ -263,7 +243,7 @@ void tally_diags(vector<vector<double>> matrix, string output_file = "")
         j++;
         k++;
       }
-      output_file_stream << i << ": " << diag_sum << endl;
+      output_file_stream << i << "\t" << diag_sum << endl;
     }
   }
   output_file_stream.close();
@@ -273,7 +253,7 @@ void dump_matrix(vector<vector<double>> matrix, string output_file = "")
 {
   // Loop over the matrix to find the largest value so the other values can be padded and give a nice output.
   // Start the max out at negative infinity so anything is larger.
-  double max(-std::numeric_limits<double>::infinity());
+  double max = -std::numeric_limits<double>::infinity();
   for (auto &i : matrix)
   {
     for (auto &j : i)
@@ -302,6 +282,20 @@ void dump_matrix(vector<vector<double>> matrix, string output_file = "")
       output_file_stream << endl;
     }
   }
+}
+
+score_matrix generate_matrix()
+{
+  score_matrix dna_score_matrix;
+  dna_score_matrix.indices['A'] = 0;
+  dna_score_matrix.indices['T'] = 1;
+  dna_score_matrix.indices['G'] = 2;
+  dna_score_matrix.indices['C'] = 3;
+  dna_score_matrix.matrix = { {5, -20, -20, -20},
+                              {-20, 5, -20, -20},
+                              {-20, -20, 5, -20},
+                              {-20, -20, -20, 5} };
+  return dna_score_matrix;
 }
 
 int main(int argc, char **argv)
@@ -346,8 +340,8 @@ int main(int argc, char **argv)
     }
   }
   chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
-  auto duration = chrono::duration_cast<chrono::seconds>( t2 - t1 ).count();
-  cout << "SW align completed in " << duration << "s" << endl;
+  auto duration = chrono::duration_cast<chrono::milliseconds>(t2 - t1).count();
+  cout << "SW align completed in " << duration << "ms" << endl;
   // Program 100% guarenteed to end up here.
   return 0;
 }
