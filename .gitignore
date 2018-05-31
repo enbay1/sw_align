@@ -2,3 +2,6 @@
 build/*
 .vscode/*
 .DS_STORE
+.idea/*
+*.gdoc
+sw_align_2018.*

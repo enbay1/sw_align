@@ -15,22 +15,22 @@ using namespace std;
 // Forward declarations.
 struct score_matrix
 {
-  vector<vector<double>> matrix;
+  vector<vector<int>> matrix;
   map<char, int> indices;
 };
-vector<vector<double>> run_alg(string seq_a, string seq_b);
-void print_matrix(vector<vector<double>> matrix, string file_name);
+vector<vector<int>> run_alg(string seq_a, string seq_b);
+void print_matrix(vector<vector<int>> matrix, string file_name);
 vector<string> read_files(vector<string> files);
 map<string, string> parse_cl(int argc, char **argv);
 void print_usage(char **argv);
-void tally_diags(vector<vector<double>> matrix, string output_file);
+void tally_diags(vector<vector<int>> matrix, string output_file);
 score_matrix generate_matrix();
 
 //Scores should be positive, as they are SUBTRACTED in the alg.
 int open_gap_penalty = 25;
 int extend_gap_penalty = 1;
 
-vector<vector<double>> run_alg(string seq_a, string seq_b)
+vector<vector<int>> run_alg(string seq_a, string seq_b)
 {
 
   if (seq_b.length() < seq_a.length())
@@ -42,8 +42,8 @@ vector<vector<double>> run_alg(string seq_a, string seq_b)
   size_t len_a = seq_a.length();
   size_t len_b = seq_b.length();
   // initialize matrix for scores, and traceback, I guess.
-  vector<vector<double>> score_matrix;
-  vector<vector<double>> IC, IR;
+  vector<vector<int>> score_matrix;
+  vector<vector<int>> IC, IR;
   // Make all three matrices the correct size.
   score_matrix.resize(len_a + 1);
   IC.resize(len_a + 1);
@@ -79,7 +79,7 @@ vector<vector<double>> run_alg(string seq_a, string seq_b)
       }
       else
       {
-        score_matrix[row + 1][column + 1] = score + max(0., max(score_matrix[row][column], max(IR[row][column], IC[row][column])));
+        score_matrix[row + 1][column + 1] = score + max(0, max(score_matrix[row][column], max(IR[row][column], IC[row][column])));
         IR[row + 1][column + 1] = max(score_matrix[row][column + 1] - open_gap_penalty, IR[row][column + 1] - extend_gap_penalty);
         IC[row + 1][column + 1] = max(score_matrix[row + 1][column] - open_gap_penalty, IC[row + 1][column] - extend_gap_penalty);
       }
@@ -223,7 +223,7 @@ void print_usage(char **argv)
   exit(0);
 }
 
-void tally_diags(vector<vector<double>> matrix, string output_file = "")
+void tally_diags(vector<vector<int>> matrix, string output_file = "")
 {
   ofstream output_file_stream;
   output_file_stream.open(output_file, ofstream::out);
@@ -249,24 +249,33 @@ void tally_diags(vector<vector<double>> matrix, string output_file = "")
   output_file_stream.close();
 }
 
-void dump_matrix(vector<vector<double>> matrix, string output_file = "")
+void dump_matrix(vector<vector<int>> matrix, string output_file = "")
 {
   // Loop over the matrix to find the largest value so the other values can be padded and give a nice output.
   // Start the max out at negative infinity so anything is larger.
-  double max = -std::numeric_limits<double>::infinity();
+  int max = std::numeric_limits<int>::min();
+  int min = std::numeric_limits<int>::max();
   for (auto &i : matrix)
   {
     for (auto &j : i)
     {
       if (j > max)
       {
-        max = j;
+        max = (int)j;
+      }
+      if (j < min)
+      {
+        min = int(j);
       }
     }
   }
+  // If there's a neg number longer (including '-') than the longest pos number, use the neg number to pad the output.
+  auto pad_size = to_string(max).length();
+  if (to_string(min).length() > pad_size)
+  {
+    pad_size = to_string(min).length();
+  }
   // Acutal dumping occurs here. Open the fille, write out the numbers in a sensical manner.
-  string max_string = to_string(max);
-  size_t pad_size = max_string.size();
   ofstream output_file_stream;
   output_file_stream.open(output_file, ofstream::out);
   if (output_file_stream.is_open())
@@ -275,9 +284,10 @@ void dump_matrix(vector<vector<double>> matrix, string output_file = "")
     {
       for (auto &j : i)
       {
-        size_t num_pad = pad_size - to_string(j).size();
-        string pad = string(num_pad, ' ');
-        output_file_stream << pad << j << " ";
+        auto j_string = to_string(j);
+        size_t amount_to_pad = pad_size - j_string.length();
+        string pad = string(amount_to_pad, ' ');
+        output_file_stream << pad << (int)j << " ";
       }
       output_file_stream << endl;
     }
@@ -291,10 +301,10 @@ score_matrix generate_matrix()
   dna_score_matrix.indices['T'] = 1;
   dna_score_matrix.indices['G'] = 2;
   dna_score_matrix.indices['C'] = 3;
-  dna_score_matrix.matrix = { {5, -20, -20, -20},
-                              {-20, 5, -20, -20},
-                              {-20, -20, 5, -20},
-                              {-20, -20, -20, 5} };
+  dna_score_matrix.matrix = {{5, -4, -4, -4},
+                             {-4, 5, -4, -4},
+                             {-4, -4, 5, -4},
+                             {-4, -4, -4, 5}};
   return dna_score_matrix;
 }
 
