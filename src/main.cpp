@@ -32,7 +32,7 @@ int extend_gap_penalty = 1;
 
 vector<vector<int>> run_alg(string seq_a, string seq_b)
 {
-
+  //todo see if this is actually required.
   if (seq_b.length() < seq_a.length())
   {
     cout << "Sequences have been swapped becuase seq a is longer than seq b. Consider passing files in opposite order." << endl;
@@ -71,18 +71,22 @@ vector<vector<int>> run_alg(string seq_a, string seq_b)
       auto char_a_index = dna_score_matrix.indices[char_a];
       auto char_b_index = dna_score_matrix.indices[char_b];
       int score = dna_score_matrix.matrix[char_a_index][char_b_index];
+      /*
       if (row == column)
       {
         score_matrix[row + 1][column + 1] = 0;
         IR[row + 1][column + 1] = max(score_matrix[row][column + 1] - open_gap_penalty, IR[row][column + 1] - extend_gap_penalty);
         IC[row + 1][column + 1] = max(score_matrix[row + 1][column] - open_gap_penalty, IC[row + 1][column] - extend_gap_penalty);
       }
-      else
-      {
-        score_matrix[row + 1][column + 1] = score + max(0, max(score_matrix[row][column], max(IR[row][column], IC[row][column])));
-        IR[row + 1][column + 1] = max(score_matrix[row][column + 1] - open_gap_penalty, IR[row][column + 1] - extend_gap_penalty);
-        IC[row + 1][column + 1] = max(score_matrix[row + 1][column] - open_gap_penalty, IC[row + 1][column] - extend_gap_penalty);
-      }
+      else */
+      //{
+      auto max_IR_IC = max(IR[row][column], IC[row][column]);
+      auto max_diag_zero = max(0, score_matrix[row][column]);
+      auto global_max = max(max_IR_IC, max_diag_zero);
+      score_matrix[row + 1][column + 1] = max(0, score + global_max);
+      IR[row + 1][column + 1] = max(score_matrix[row][column + 1] - open_gap_penalty, IR[row][column + 1] - extend_gap_penalty);
+      IC[row + 1][column + 1] = max(score_matrix[row + 1][column] - open_gap_penalty, IC[row + 1][column] - extend_gap_penalty);
+      //}
     }
   }
   return score_matrix;
@@ -244,6 +248,21 @@ void tally_diags(vector<vector<int>> matrix, string output_file = "")
         k++;
       }
       output_file_stream << i << "\t" << diag_sum << endl;
+    }
+    for (int i = 1; i < matrix.size(); i++)
+    {
+      double diag_sum = 0;
+      // j is the running diagonal index  that starts the "column"
+      int j = i;
+      // k is the running diagonal index that goes from 0 to the end.
+      int k = 0;
+      while (j < matrix.size() && k < matrix[0].size())
+      {
+        diag_sum += matrix[j][k];
+        j++;
+        k++;
+      }
+      output_file_stream << "-" << i << "\t" << diag_sum << endl;
     }
   }
   output_file_stream.close();
