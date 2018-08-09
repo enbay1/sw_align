@@ -5,3 +5,8 @@ build/*
 .idea/*
 *.gdoc
 sw_align_2018.*
+resources/*
+SW_PARSE.txt
+output_file.txt
+get_max.py
+dump_file.txt
