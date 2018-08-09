@@ -11,6 +11,8 @@
 using namespace std;
 // for color use \x1B[31m
 // Forward declarations.
+// TODO add cli penalties
+// TODO add cli diag control flag
 struct score_matrix {
   vector<vector<int> > matrix;
   map<char, int> indices;
@@ -22,6 +24,14 @@ map<string, string> parse_cl(int argc, char **argv);
 void print_usage(char **argv);
 void tally_diags(vector<vector<int> > matrix, string output_file);
 score_matrix generate_matrix();
+string to_lower(string to_lower);
+
+string to_lower(string to_lower) {
+  string lower = to_lower;
+  for (int i = 0; i < lower.size(); i++)
+    if (lower[i] >= 'A' && lower[i] <= 'Z') lower[i] = tolower(lower[i]);
+  return lower;
+}
 
 // Scores should be positive, as they are SUBTRACTED in the alg.
 int open_gap_penalty = 25;
@@ -57,8 +67,8 @@ vector<vector<int> > run_alg(string seq_a, string seq_b) {
   struct score_matrix dna_score_matrix = generate_matrix();
   for (int i = 1; i <= len_a; i++) {
     for (int j = 1; j <= len_b; j++) {
-      char char_a = seq_a[i-1];
-      char char_b = seq_b[j-1];
+      char char_a = seq_a[i - 1];
+      char char_b = seq_b[j - 1];
       int char_a_index = dna_score_matrix.indices[char_a];
       int char_b_index = dna_score_matrix.indices[char_b];
       int score = dna_score_matrix.matrix[char_a_index][char_b_index];
@@ -73,7 +83,7 @@ vector<vector<int> > run_alg(string seq_a, string seq_b) {
           0,
           (max((score_matrix[i - 1][j - 1] + score),
                max((seq_b_indel_matrix[i][j]), (seq_a_indel_matrix[i][j])))));
-      if (i == j){
+      if (i == j) {
         score_matrix[i][j] = 0;
       }
       //}
@@ -109,37 +119,49 @@ vector<string> read_files(vector<string> files) {
 }
 
 map<string, string> parse_cl(int argc, char **argv) {
+  // 3 is <program name> <file 1> <file 2> and therefore minimum viable call. <
+  // 3 is usless.
   if (argc < 3) {
-    print_usage(argv);
+    cerr << "No fasta files specified. Please pass 2 fasta files to align." << endl;
+    exit(0);
   }
   vector<string> args;
   for (int i = 1; i < argc; i++) {
     args.push_back(argv[i]);
   }
   map<string, string> parameters;
+  //Optional paramaters need defaults.
+  parameters.emplace("open_gap", "25");
+  parameters.emplace("extend_gap", "1");
+  parameters.emplace("diagonal", "1");
+  parameters.emplace("output", "");
+  parameters.emplace("dump", "");
   // See if the user asked for help.
+  // no use running other things if use doesn't know what they're doing.
   for (const auto &i : args) {
-    if (i.compare("--help") == 0 || i.compare("-h") == 0) {
+    if (to_lower(i).compare("--help") == 0 || to_lower(i).compare("-h") == 0) {
       print_usage(argv);
     }
   }
   // Check that the files are of type .fasta
+  // Files have to be in args[0] and [1] as they're the 1st and 2nd CLI params.
   for (string file : {args[0], args[1]}) {
     if (file.find(".fasta") != string::npos &&
         file.find(".FASTA") != string::npos) {
       cerr << "File " + file + " not of type .fasta" << endl;
-      ;
-      print_usage(argv);
+      exit(0);
     }
   }
   // Store the two files in a map
   parameters.emplace("file_1", args[0]);
   parameters.emplace("file_2", args[1]);
   // Check for output names and dump option.
-  if (args.size() > 7) {
+  if (args.size() > 12) {
     cerr << "Too many arguments specified." << endl;
-    print_usage(argv);
+    exit(0);
   }
+  // This and the line that checks for less than three only exclude if there are
+  // exactly three, which doesn't really require CLI parsing.
   if (args.size() > 3) {
     for (const auto &i : args) {
       if (i == args.back()) {
@@ -147,9 +169,10 @@ map<string, string> parse_cl(int argc, char **argv) {
       }
       auto look_ahead = &i;
       look_ahead++;
-      if (i == "-o" || i == "-output") {
-        if (look_ahead->find("-") != 0 && look_ahead->find("--") != 0) {
-          parameters.emplace("output", *look_ahead);
+      // Look for -o or --output for output file
+      if (to_lower(i) == "-o" || to_lower(i) == "-output") {
+        if (look_ahead[0] != "-") {
+          parameters.find("output")->second = *look_ahead;
           continue;
         } else {
           cerr << "No output file name found after -o or --output flag. Using "
@@ -157,16 +180,40 @@ map<string, string> parse_cl(int argc, char **argv) {
                << endl;
           parameters.emplace("output", "");
         }
-      }
-      if (i == "-d" || i == "-dump") {
-        if (look_ahead->find("-") != 0 && look_ahead->find("--") != 0) {
-          parameters.emplace("dump", *look_ahead);
+        // Look for -d or --dump for matrix dump file
+      } else if (to_lower(i) == "-d" || to_lower(i) == "--dump") {
+        if (look_ahead[0] != "-") {
+          parameters.find("dump")->second = *look_ahead;
           continue;
         } else {
           cerr << "No dump file name found after -d or --dump flag.  Using "
                   "generated one."
                << endl;
-          parameters.emplace("dump", "");
+        }
+        // Look for --open for gap open penalty
+      } else if (to_lower(i) == "--open") {
+        if (look_ahead[0] != "-") {
+          parameters.find("open_gap")->second = *look_ahead;
+          continue;
+        } else {
+          cerr << "No open gap penalty found after --open.  Using 25" << endl;
+        }
+        // Look for --extend for gap extension penalty
+      } else if (to_lower(i) == "--extend" || to_lower(i) == "-e") {
+        if (look_ahead[0] != "-") {
+          parameters.find("extend_gap")->second = *look_ahead;
+          continue;
+        } else {
+          cerr << "No extend gap penalty found after --open.  Using 1" << endl;
+        }
+        // Look for --diag or --diagonal for diagonal retention
+      } else if (to_lower(i) == "--diag" || to_lower(i) == "--diagonal") {
+         if (look_ahead[0] != "-") {
+          if (to_lower(*look_ahead) == "no" || *look_ahead == "0") {
+            parameters.find("diagonal")->second = "0";
+          }
+        } else {
+          cerr << "No open gap penalty found after --open.  Using 25" << endl;
         }
       }
     }
@@ -175,8 +222,7 @@ map<string, string> parse_cl(int argc, char **argv) {
 }
 
 void print_usage(char **argv) {
-  cout << "Entering print_usage." << endl;
-  cerr << "Usage:"
+  cerr << "usage:"
        << " " << argv[0] << " "
        << "fasta_file_1"
        << " "
@@ -185,24 +231,30 @@ void print_usage(char **argv) {
        << "[-o output_file]"
        << " "
        << "[-d file_name]"
+       << " "
+       << "[--open gap_open_penalty]"
+       << " "
+       << "[-e gap_extend_penalty]"
+       << " "
+       << "[--diag keep_major_diagonal_intact]"
+       << " "
        << "[-h]" << endl;
   cerr << endl;
   cerr << "Options:" << endl;
-  cerr << "  fasta_file_1      Name of fasta file 1 to be read in." << endl;
-  cerr << "  fasta_file_1      Name of fasta file 2 to be read in." << endl;
-  cerr << "  -h --help         Show this message." << endl;
-  cerr << "  -o --output FILE  Name of output file. If one is not specified "
-          "one will be generated."
-       << endl;
-  cerr << "  -d --dump FILE    Name of file to which scoring matrix is "
-          "written. If one is not specified one will be generated."
-       << endl;
+  cerr << "  fasta_file_1                 Name of fasta file 1 to be read in." << endl;
+  cerr << "  fasta_file_2                 Name of fasta file 2 to be read in." << endl;
+  cerr << "  -o, --output FILE            Name of output file. If one is not specified one will be generated." << endl;
+  cerr << "  -d, --dump FILE              Name of file to which scoring matrix is written. If one is not specified one will be generated." << endl;
+  cerr << "  --open                       Set the gap open penalty. A positive integer. [Default: 25]." << endl;
+  cerr << "  -e, --extend (positive int)  Set the gap extend penalty. A postive integer. [Default: 1]." << endl;
+  cerr << "  --diag, --diagonal [0|1]     Set whether to keep the major diagonal or not [Default: 1, keep diagonal]." << endl;
+  cerr << "  -h, --help                   Show this message." << endl;
   exit(0);
 }
 
 void tally_diags(vector<vector<int> > matrix, string output_file = "") {
   matrix.erase(matrix.begin());
-  for (auto &i: matrix){
+  for (auto &i : matrix) {
     i.erase(i.begin());
   }
   ofstream output_file_stream;
