@@ -10,14 +10,14 @@
 #include <vector>
 using namespace std;
 // for color use \x1B[31m
-// Forward declarations.
-// TODO add cli penalties
-// TODO add cli diag control flag
+// Forward declarations
+//Diag doesn't work.
 struct score_matrix {
   vector<vector<int> > matrix;
   map<char, int> indices;
 };
-vector<vector<int> > run_alg(string seq_a, string seq_b);
+vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
+                             int extend_gap_penalty, int diagonal);
 void print_matrix(vector<vector<int> > matrix, string file_name);
 vector<string> read_files(vector<string> files);
 map<string, string> parse_cl(int argc, char **argv);
@@ -33,11 +33,7 @@ string to_lower(string to_lower) {
   return lower;
 }
 
-// Scores should be positive, as they are SUBTRACTED in the alg.
-int open_gap_penalty = 25;
-int extend_gap_penalty = 1;
-
-vector<vector<int> > run_alg(string seq_a, string seq_b) {
+vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty, int extend_gap_penalty, int diagonal) {
   // todo see if this is actually required.
   if (seq_b.length() < seq_a.length()) {
     cout << "Sequences have been swapped becuase seq a is longer than seq b. "
@@ -83,7 +79,7 @@ vector<vector<int> > run_alg(string seq_a, string seq_b) {
           0,
           (max((score_matrix[i - 1][j - 1] + score),
                max((seq_b_indel_matrix[i][j]), (seq_a_indel_matrix[i][j])))));
-      if (i == j) {
+      if (i == j && !diagonal) {
         score_matrix[i][j] = 0;
       }
       //}
@@ -351,7 +347,7 @@ int main(int argc, char **argv) {
   vector<string> file_contents =
       read_files({cl_params["file_1"], cl_params["file_2"]});
   // Run the algorithm
-  auto matrix = run_alg(file_contents[0], file_contents[1]);
+  auto matrix = run_alg(file_contents[0], file_contents[1], stoi(cl_params["open_gap"]), stoi(cl_params["extend_gap"]), stoi(cl_params["diagonal"]));
   // Check to see if output and dump files were specified. If they weren't
   // assign them regardless of use. This way if they're not specified they're
   // the same name and will sort nicely in the OS.
