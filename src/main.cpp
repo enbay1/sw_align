@@ -115,15 +115,24 @@ vector<string> read_files(vector<string> files) {
 }
 
 map<string, string> parse_cl(int argc, char **argv) {
-  // 3 is <program name> <file 1> <file 2> and therefore minimum viable call. <
-  // 3 is usless.
-  if (argc < 3) {
-    cerr << "No fasta files specified. Please pass 2 fasta files to align." << endl;
-    exit(0);
-  }
+
   vector<string> args;
   for (int i = 1; i < argc; i++) {
     args.push_back(argv[i]);
+  }
+  // See if the user asked for help.
+  // no use running other things if use doesn't know what they're doing.
+  for (const auto &i : args) {
+    if (to_lower(i).compare("--help") == 0 || to_lower(i).compare("-h") == 0) {
+      print_usage(argv);
+    }
+  }
+  // 3 is <program name> <file 1> <file 2> and therefore minimum viable call. <
+  // 3 is usless.
+  if (argc < 3) {
+    cerr << "No fasta files specified. Please pass 2 fasta files to align."
+         << endl;
+    exit(1);
   }
   map<string, string> parameters;
   //Optional paramaters need defaults.
@@ -132,20 +141,14 @@ map<string, string> parse_cl(int argc, char **argv) {
   parameters.emplace("diagonal", "1");
   parameters.emplace("output", "");
   parameters.emplace("dump", "");
-  // See if the user asked for help.
-  // no use running other things if use doesn't know what they're doing.
-  for (const auto &i : args) {
-    if (to_lower(i).compare("--help") == 0 || to_lower(i).compare("-h") == 0) {
-      print_usage(argv);
-    }
-  }
+
   // Check that the files are of type .fasta
   // Files have to be in args[0] and [1] as they're the 1st and 2nd CLI params.
   for (string file : {args[0], args[1]}) {
     if (file.find(".fasta") != string::npos &&
         file.find(".FASTA") != string::npos) {
       cerr << "File " + file + " not of type .fasta" << endl;
-      exit(0);
+      exit(1);
     }
   }
   // Store the two files in a map
@@ -154,7 +157,7 @@ map<string, string> parse_cl(int argc, char **argv) {
   // Check for output names and dump option.
   if (args.size() > 12) {
     cerr << "Too many arguments specified." << endl;
-    exit(0);
+    exit(1);
   }
   // This and the line that checks for less than three only exclude if there are
   // exactly three, which doesn't really require CLI parsing.
