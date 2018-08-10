@@ -39,7 +39,7 @@ vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
                              int extend_gap_penalty, int diagonal) {
   // todo see if this is actually required.
   if (seq_b.length() < seq_a.length()) {
-    cout << "Sequences have been swapped becuase seq a is longer than seq b. "
+    cout << "Sequences have been swapped because seq a is longer than seq b. "
             "Consider passing files in opposite order."
          << endl;
     seq_a.swap(seq_b);
@@ -85,7 +85,7 @@ vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
           0,
           (max((score_matrix[i - 1][j - 1] + score),
                max((seq_b_indel_matrix[i][j]), (seq_a_indel_matrix[i][j])))));
-      // This is where the digonal flag is used. It's set to 0 after to retain
+      // This is where the diagonal flag is used. It's set to 0 after to retain
       // traceback info in the two indel matrices.
       if (i == j && !diagonal) {
         score_matrix[i][j] = 0;
@@ -136,7 +136,7 @@ map<string, string> parse_cl(int argc, char **argv) {
     }
   }
   // 3 is <program name> <file 1> <file 2> and therefore minimum viable call. <
-  // 3 is usless.
+  // 3 is useless.
   if (argc < 3) {
     cerr << "No fasta files specified. Please pass 2 fasta files to align."
          << endl;
@@ -262,7 +262,7 @@ void print_usage(char **argv) {
           "integer. [Default: 25]."
        << endl;
   cerr << "  -e, --extend (positive int)  Set the gap extend penalty. A "
-          "postive integer. [Default: 1]."
+          "positive integer. [Default: 1]."
        << endl;
   cerr << "  --diag, --diagonal [0|1]     Set whether to keep the major "
           "diagonal or not [Default: 1, keep diagonal]."
@@ -333,8 +333,8 @@ void dump_matrix(vector<vector<int> > matrix, string output_file = "") {
   if (to_string(min).length() > pad_size) {
     pad_size = to_string(min).length();
   }
-  // Acutal dumping occurs here. Open the fille, write out the numbers in a
-  // sensical manner.
+  // Actual dumping occurs here. Open the fille, write out the numbers in a
+  // sensible manner.
   ofstream output_file_stream;
   output_file_stream.open(output_file, ofstream::out);
   if (output_file_stream.is_open()) {
@@ -393,7 +393,7 @@ int main(int argc, char **argv) {
   tally_diags(matrix, cl_params["output"]);
   // "helpful" messages to end users!
   cout << "Results saved to " << cl_params["output"] << endl;
-  // See if the end ueser put "-d" anywhere, if they did dump ze matrix!
+  // See if the end user put "-d" anywhere, if they did dump ze matrix!
   for (int i = 1; i < argc; i++) {
     if (string(argv[i]).compare("-d") == 0 ||
         string(argv[i]).compare("-dump") == 0) {
@@ -406,6 +406,6 @@ int main(int argc, char **argv) {
       chrono::high_resolution_clock::now();
   auto duration = chrono::duration_cast<chrono::milliseconds>(t2 - t1).count();
   cout << "SW align completed in " << duration << "ms" << endl;
-  // Program 100% guarenteed to end up here.
+  // Program 100% guaranteed to end up here.
   return 0;
 }
