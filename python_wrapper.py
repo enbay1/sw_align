@@ -1,3 +1,5 @@
+# Short example and implementation of wrapping sw_align in python.
+# Requires changes to run on linux, remove .exe in line 15.
 import shlex
 import subprocess
 
