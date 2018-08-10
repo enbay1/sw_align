@@ -91,7 +91,7 @@ vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
   }
   return score_matrix;
 }
-
+// Read contents of two passed FASTA files
 vector<string> read_files(vector<string> files) {
   vector<string> return_vector;
   string line;
@@ -105,6 +105,7 @@ vector<string> read_files(vector<string> files) {
       cerr << "Unable to open file " + file << endl;
       exit(1);
     } else {
+      //throw DNA lines into a vector
       while (getline(input_file, line)) {
         if (line.find(">") == string::npos) {
           file_contents.push_back(line);
@@ -112,12 +113,13 @@ vector<string> read_files(vector<string> files) {
       }
       input_file.close();
     }
+    // Add all the fasta lines into one line
     return_vector.push_back(
         accumulate(file_contents.begin(), file_contents.end(), string("")));
   }
   return return_vector;
 }
-
+// Parse the command line.
 map<string, string> parse_cl(int argc, char **argv) {
   vector<string> args;
   for (int i = 1; i < argc; i++) {
