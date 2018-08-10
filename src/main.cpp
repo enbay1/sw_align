@@ -24,14 +24,16 @@ void print_usage(char **argv);
 void tally_diags(vector<vector<int> > matrix, string output_file);
 score_matrix generate_matrix();
 string to_lower(string to_lower);
-//Converts a string to all lowercase. Mainly  used for CLI comparison to be case-insensitive.
+// Converts a string to all lowercase. Mainly  used for CLI comparison to be
+// case-insensitive.
 string to_lower(string to_lower) {
   string lower = to_lower;
   for (int i = 0; i < lower.size(); i++)
     if (lower[i] >= 'A' && lower[i] <= 'Z') lower[i] = tolower(lower[i]);
   return lower;
 }
-//Runs the Smith-Waterman algorithm with seq_a vs seq_b with gap penalties. Diagonal determines whether to keep the major diagonal or not.
+// Runs the Smith-Waterman algorithm with seq_a vs seq_b with gap penalties.
+// Diagonal determines whether to keep the major diagonal or not.
 // If diagonal is set to 0 the main diagonal will be zeroed out.
 vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
                              int extend_gap_penalty, int diagonal) {
@@ -64,15 +66,15 @@ vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
   struct score_matrix dna_score_matrix = generate_matrix();
   for (int i = 1; i <= len_a; i++) {
     for (int j = 1; j <= len_b; j++) {
-      //Grab characters to be compared
+      // Grab characters to be compared
       char char_a = seq_a[i - 1];
       char char_b = seq_b[j - 1];
-      //Get the chars' index in matrix
+      // Get the chars' index in matrix
       int char_a_index = dna_score_matrix.indices[char_a];
       int char_b_index = dna_score_matrix.indices[char_b];
-      //get score
+      // get score
       int score = dna_score_matrix.matrix[char_a_index][char_b_index];
-      //set the next cell on the diagonal.
+      // set the next cell on the diagonal.
       seq_b_indel_matrix[i][j] =
           max((seq_b_indel_matrix[i - 1][j] - extend_gap_penalty),
               (score_matrix[i - 1][j] - open_gap_penalty));
@@ -83,7 +85,8 @@ vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
           0,
           (max((score_matrix[i - 1][j - 1] + score),
                max((seq_b_indel_matrix[i][j]), (seq_a_indel_matrix[i][j])))));
-               //This is where the digonal flag is used. It's set to 0 after to retain traceback info in the two indel matrices.
+      // This is where the digonal flag is used. It's set to 0 after to retain
+      // traceback info in the two indel matrices.
       if (i == j && !diagonal) {
         score_matrix[i][j] = 0;
       }
@@ -105,7 +108,7 @@ vector<string> read_files(vector<string> files) {
       cerr << "Unable to open file " + file << endl;
       exit(1);
     } else {
-      //throw DNA lines into a vector
+      // throw DNA lines into a vector
       while (getline(input_file, line)) {
         if (line.find(">") == string::npos) {
           file_contents.push_back(line);
