@@ -15,13 +15,13 @@ struct score_matrix {
   vector<vector<int> > matrix;
   map<char, int> indices;
 };
-vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
+vector<vector<long long int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
                              int extend_gap_penalty, int diagonal);
-void print_matrix(vector<vector<int> > matrix, string file_name);
+void print_matrix(vector<vector<long long int> > matrix, string file_name);
 vector<string> read_files(vector<string> files);
 map<string, string> parse_cl(int argc, char **argv);
 void print_usage(char **argv);
-void tally_diags(vector<vector<int> > matrix, string output_file);
+void tally_diags(vector<vector<long long int> > matrix, string output_file);
 score_matrix generate_matrix();
 string to_lower(string to_lower);
 // Converts a string to all lowercase. Mainly  used for CLI comparison to be
@@ -35,7 +35,7 @@ string to_lower(string to_lower) {
 // Runs the Smith-Waterman algorithm with seq_a vs seq_b with gap penalties.
 // Diagonal determines whether to keep the major diagonal or not.
 // If diagonal is set to 0 the main diagonal will be zeroed out.
-vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
+vector<vector<long long int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
                              int extend_gap_penalty, int diagonal) {
   // todo see if this is actually required.
   if (seq_b.length() < seq_a.length()) {
@@ -48,7 +48,7 @@ vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
   size_t len_a = seq_a.length();
   size_t len_b = seq_b.length();
   // initialize matrix for scores.
-  vector<vector<int> > score_matrix, seq_b_indel_matrix, seq_a_indel_matrix;
+  vector<vector<long long int> > score_matrix, seq_b_indel_matrix, seq_a_indel_matrix;
   // Make all three matrices the correct size.
   score_matrix.resize(len_a + 1);
   seq_b_indel_matrix.resize(len_a + 1);
@@ -82,7 +82,7 @@ vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
           max((seq_a_indel_matrix[i][j - 1] - extend_gap_penalty),
               (score_matrix[i][j - 1] - open_gap_penalty));
       score_matrix[i][j] = max(
-          0,
+          (long long)0,
           (max((score_matrix[i - 1][j - 1] + score),
                max((seq_b_indel_matrix[i][j]), (seq_a_indel_matrix[i][j])))));
       // This is where the diagonal flag is used. It's set to 0 after to retain
@@ -271,7 +271,7 @@ void print_usage(char **argv) {
   exit(0);
 }
 
-void tally_diags(vector<vector<int> > matrix, string output_file = "") {
+void tally_diags(vector<vector<long long int> > matrix, string output_file = "") {
   matrix.erase(matrix.begin());
   for (auto &i : matrix) {
     i.erase(i.begin());
@@ -281,7 +281,7 @@ void tally_diags(vector<vector<int> > matrix, string output_file = "") {
   if (output_file_stream.is_open()) {
     // i goes across the top row of the matrix
     for (int i = 0; i < matrix[0].size(); i++) {
-      double diag_sum = 0;
+      long long int diag_sum = 0;
       // j is the running diagonal index  that starts the "column"
       int j = i;
       // k is the running diagonal index that goes from 0 to the end.
@@ -311,7 +311,7 @@ void tally_diags(vector<vector<int> > matrix, string output_file = "") {
   output_file_stream.close();
 }
 
-void dump_matrix(vector<vector<int> > matrix, string output_file = "") {
+void dump_matrix(vector<vector<long long int> > matrix, string output_file = "") {
   // Loop over the matrix to find the largest value so the other values can be
   // padded and give a nice output. Start the max out at negative infinity so
   // anything is larger.
