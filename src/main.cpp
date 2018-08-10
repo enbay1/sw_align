@@ -11,7 +11,6 @@
 using namespace std;
 // for color use \x1B[31m
 // Forward declarations
-//Diag doesn't work.
 struct score_matrix {
   vector<vector<int> > matrix;
   map<char, int> indices;
@@ -25,15 +24,17 @@ void print_usage(char **argv);
 void tally_diags(vector<vector<int> > matrix, string output_file);
 score_matrix generate_matrix();
 string to_lower(string to_lower);
-
+//Converts a string to all lowercase. Mainly  used for CLI comparison to be case-insensitive.
 string to_lower(string to_lower) {
   string lower = to_lower;
   for (int i = 0; i < lower.size(); i++)
     if (lower[i] >= 'A' && lower[i] <= 'Z') lower[i] = tolower(lower[i]);
   return lower;
 }
-
-vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty, int extend_gap_penalty, int diagonal) {
+//Runs the Smith-Waterman algorithm with seq_a vs seq_b with gap penalties. Diagonal determines whether to keep the major diagonal or not.
+// If diagonal is set to 0 the main diagonal will be zeroed out.
+vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
+                             int extend_gap_penalty, int diagonal) {
   // todo see if this is actually required.
   if (seq_b.length() < seq_a.length()) {
     cout << "Sequences have been swapped becuase seq a is longer than seq b. "
@@ -63,15 +64,18 @@ vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty, i
   struct score_matrix dna_score_matrix = generate_matrix();
   for (int i = 1; i <= len_a; i++) {
     for (int j = 1; j <= len_b; j++) {
+      //Grab characters to be compared
       char char_a = seq_a[i - 1];
       char char_b = seq_b[j - 1];
+      //Get the chars' index in matrix
       int char_a_index = dna_score_matrix.indices[char_a];
       int char_b_index = dna_score_matrix.indices[char_b];
+      //get score
       int score = dna_score_matrix.matrix[char_a_index][char_b_index];
+      //set the next cell on the diagonal.
       seq_b_indel_matrix[i][j] =
           max((seq_b_indel_matrix[i - 1][j] - extend_gap_penalty),
               (score_matrix[i - 1][j] - open_gap_penalty));
-      // python version different.
       seq_a_indel_matrix[i][j] =
           max((seq_a_indel_matrix[i][j - 1] - extend_gap_penalty),
               (score_matrix[i][j - 1] - open_gap_penalty));
@@ -79,10 +83,10 @@ vector<vector<int> > run_alg(string seq_a, string seq_b, int open_gap_penalty, i
           0,
           (max((score_matrix[i - 1][j - 1] + score),
                max((seq_b_indel_matrix[i][j]), (seq_a_indel_matrix[i][j])))));
+               //This is where the digonal flag is used. It's set to 0 after to retain traceback info in the two indel matrices.
       if (i == j && !diagonal) {
         score_matrix[i][j] = 0;
       }
-      //}
     }
   }
   return score_matrix;
@@ -115,7 +119,6 @@ vector<string> read_files(vector<string> files) {
 }
 
 map<string, string> parse_cl(int argc, char **argv) {
-
   vector<string> args;
   for (int i = 1; i < argc; i++) {
     args.push_back(argv[i]);
@@ -135,7 +138,7 @@ map<string, string> parse_cl(int argc, char **argv) {
     exit(1);
   }
   map<string, string> parameters;
-  //Optional paramaters need defaults.
+  // Optional paramaters need defaults.
   parameters.emplace("open_gap", "25");
   parameters.emplace("extend_gap", "1");
   parameters.emplace("diagonal", "1");
@@ -207,7 +210,7 @@ map<string, string> parse_cl(int argc, char **argv) {
         }
         // Look for --diag or --diagonal for diagonal retention
       } else if (to_lower(i) == "--diag" || to_lower(i) == "--diagonal") {
-         if (look_ahead[0] != "-") {
+        if (look_ahead[0] != "-") {
           if (to_lower(*look_ahead) == "no" || *look_ahead == "0") {
             parameters.find("diagonal")->second = "0";
           }
@@ -240,13 +243,25 @@ void print_usage(char **argv) {
        << "[-h]" << endl;
   cerr << endl;
   cerr << "Options:" << endl;
-  cerr << "  fasta_file_1                 Name of fasta file 1 to be read in." << endl;
-  cerr << "  fasta_file_2                 Name of fasta file 2 to be read in." << endl;
-  cerr << "  -o, --output FILE            Name of output file. If one is not specified one will be generated." << endl;
-  cerr << "  -d, --dump FILE              Name of file to which scoring matrix is written. If one is not specified one will be generated." << endl;
-  cerr << "  --open                       Set the gap open penalty. A positive integer. [Default: 25]." << endl;
-  cerr << "  -e, --extend (positive int)  Set the gap extend penalty. A postive integer. [Default: 1]." << endl;
-  cerr << "  --diag, --diagonal [0|1]     Set whether to keep the major diagonal or not [Default: 1, keep diagonal]." << endl;
+  cerr << "  fasta_file_1                 Name of fasta file 1 to be read in."
+       << endl;
+  cerr << "  fasta_file_2                 Name of fasta file 2 to be read in."
+       << endl;
+  cerr << "  -o, --output FILE            Name of output file. If one is not "
+          "specified one will be generated."
+       << endl;
+  cerr << "  -d, --dump FILE              Name of file to which scoring matrix "
+          "is written. If one is not specified one will be generated."
+       << endl;
+  cerr << "  --open                       Set the gap open penalty. A positive "
+          "integer. [Default: 25]."
+       << endl;
+  cerr << "  -e, --extend (positive int)  Set the gap extend penalty. A "
+          "postive integer. [Default: 1]."
+       << endl;
+  cerr << "  --diag, --diagonal [0|1]     Set whether to keep the major "
+          "diagonal or not [Default: 1, keep diagonal]."
+       << endl;
   cerr << "  -h, --help                   Show this message." << endl;
   exit(0);
 }
@@ -350,7 +365,9 @@ int main(int argc, char **argv) {
   vector<string> file_contents =
       read_files({cl_params["file_1"], cl_params["file_2"]});
   // Run the algorithm
-  auto matrix = run_alg(file_contents[0], file_contents[1], stoi(cl_params["open_gap"]), stoi(cl_params["extend_gap"]), stoi(cl_params["diagonal"]));
+  auto matrix =
+      run_alg(file_contents[0], file_contents[1], stoi(cl_params["open_gap"]),
+              stoi(cl_params["extend_gap"]), stoi(cl_params["diagonal"]));
   // Check to see if output and dump files were specified. If they weren't
   // assign them regardless of use. This way if they're not specified they're
   // the same name and will sort nicely in the OS.
