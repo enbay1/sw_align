@@ -15,8 +15,9 @@ struct score_matrix {
   vector<vector<int> > matrix;
   map<char, int> indices;
 };
-vector<vector<long long int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
-                             int extend_gap_penalty, int diagonal);
+vector<vector<long long int> > run_alg(string seq_a, string seq_b,
+                                       int open_gap_penalty,
+                                       int extend_gap_penalty, int diagonal);
 void print_matrix(vector<vector<long long int> > matrix, string file_name);
 vector<string> read_files(vector<string> files);
 map<string, string> parse_cl(int argc, char **argv);
@@ -35,8 +36,9 @@ string to_lower(string to_lower) {
 // Runs the Smith-Waterman algorithm with seq_a vs seq_b with gap penalties.
 // Diagonal determines whether to keep the major diagonal or not.
 // If diagonal is set to 0 the main diagonal will be zeroed out.
-vector<vector<long long int> > run_alg(string seq_a, string seq_b, int open_gap_penalty,
-                             int extend_gap_penalty, int diagonal) {
+vector<vector<long long int> > run_alg(string seq_a, string seq_b,
+                                       int open_gap_penalty,
+                                       int extend_gap_penalty, int diagonal) {
   // todo see if this is actually required.
   if (seq_b.length() < seq_a.length()) {
     cout << "Sequences have been swapped because seq a is longer than seq b. "
@@ -48,7 +50,8 @@ vector<vector<long long int> > run_alg(string seq_a, string seq_b, int open_gap_
   size_t len_a = seq_a.length();
   size_t len_b = seq_b.length();
   // initialize matrix for scores.
-  vector<vector<long long int> > score_matrix, seq_b_indel_matrix, seq_a_indel_matrix;
+  vector<vector<long long int> > score_matrix, seq_b_indel_matrix,
+      seq_a_indel_matrix;
   // Make all three matrices the correct size.
   score_matrix.resize(len_a + 1);
   seq_b_indel_matrix.resize(len_a + 1);
@@ -271,7 +274,8 @@ void print_usage(char **argv) {
   exit(0);
 }
 
-void tally_diags(vector<vector<long long int> > matrix, string output_file = "") {
+void tally_diags(vector<vector<long long int> > matrix,
+                 string output_file = "") {
   matrix.erase(matrix.begin());
   for (auto &i : matrix) {
     i.erase(i.begin());
@@ -311,7 +315,8 @@ void tally_diags(vector<vector<long long int> > matrix, string output_file = "")
   output_file_stream.close();
 }
 
-void dump_matrix(vector<vector<long long int> > matrix, string output_file = "") {
+void dump_matrix(vector<vector<long long int> > matrix,
+                 string output_file = "") {
   // Loop over the matrix to find the largest value so the other values can be
   // padded and give a nice output. Start the max out at negative infinity so
   // anything is larger.
